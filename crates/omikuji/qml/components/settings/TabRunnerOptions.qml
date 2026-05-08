@@ -18,6 +18,12 @@ Item {
 
     property string runnerType: config["runner.type"] || ""
     property bool isWine: runnerType === "" || runnerType === "wine"
+    property bool isProtonWine: isProtonVersion(config["wine.version"] || "")
+
+    function isProtonVersion(version) {
+        let v = String(version || "").toLowerCase()
+        return v.indexOf("proton") !== -1
+    }
 
     Column {
         id: content
@@ -158,18 +164,26 @@ Item {
 
                     Text {
                         text: "NTSync"
-                        color: theme.text
+                        color: root.isProtonWine ? theme.text : theme.textSubtle
                         font.pixelSize: 15
                         Layout.preferredWidth: 80
                         Layout.alignment: Qt.AlignVCenter
                     }
 
                     M3Switch {
+                        enabled: root.isProtonWine
+                        opacity: root.isProtonWine ? 1 : 0.45
                         checked: config["wine.ntsync"] === true
                         onToggled: (val) => updateField("wine.ntsync", val)
                     }
 
-                    Item { Layout.columnSpan: 2 }
+                    Text {
+                        text: "NTSync is only applied when the selected Wine version is Proton."
+                        color: theme.textSubtle
+                        font.pixelSize: 13
+                        visible: !root.isProtonWine
+                        Layout.columnSpan: 4
+                    }
                 }
             }
 

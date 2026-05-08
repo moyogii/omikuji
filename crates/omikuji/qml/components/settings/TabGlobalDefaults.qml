@@ -27,6 +27,13 @@ Item {
 
     function isSet(key) { return setKeys.indexOf(key) !== -1 }
 
+    property bool isProtonWine: isProtonVersion(cfg["wine.version"] || "")
+
+    function isProtonVersion(version) {
+        let v = String(version || "").toLowerCase()
+        return v.indexOf("proton") !== -1
+    }
+
     function update(key, value) {
         if (!defaults) return
         defaults.updateField(key, String(value))
@@ -83,14 +90,18 @@ Item {
         property string fieldKey: ""
         property string toggleLabel: ""
         property string toggleDescription: ""
+        property bool toggleEnabled: true
         label: toggleLabel
         description: toggleDescription
         width: parent.width
+        opacity: toggleEnabled ? 1 : 0.65
 
         Row {
             spacing: 12
             M3Switch {
                 anchors.verticalCenter: parent.verticalCenter
+                enabled: toggleRow.toggleEnabled
+                opacity: toggleRow.toggleEnabled ? 1 : 0.45
                 checked: root.cfg[toggleRow.fieldKey] === true
                 onToggled: (val) => root.update(toggleRow.fieldKey, val)
             }
@@ -225,7 +236,14 @@ Item {
 
             ToggleRow { fieldKey: "wine.esync"; toggleLabel: "Esync" }
             ToggleRow { fieldKey: "wine.fsync"; toggleLabel: "Fsync" }
-            ToggleRow { fieldKey: "wine.ntsync"; toggleLabel: "NTSync" }
+            ToggleRow {
+                fieldKey: "wine.ntsync"
+                toggleLabel: "NTSync"
+                toggleDescription: !root.isProtonWine
+                    ? "Only applied when the default Wine version is Proton"
+                    : ""
+                toggleEnabled: root.isProtonWine
+            }
         }
 
         SettingsSection {

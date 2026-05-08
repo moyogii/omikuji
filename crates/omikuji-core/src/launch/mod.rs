@@ -376,7 +376,7 @@ pub fn build_env(game: &Game, variant: WineVariant, wine_exe: &Path) -> HashMap<
     if variant == WineVariant::Proton {
         let ntsync = game.wine.ntsync;
         env.insert("PROTON_USE_NTSYNC".to_string(), if ntsync { "1" } else { "0" }.to_string());
-        
+
         // Proton 11+ uses PROTON_NO_NTSYNC to disable NTSync as seen in cachyos-proton 11.0-20260428
         env.insert("PROTON_NO_NTSYNC".to_string(), if ntsync { "0" } else { "1" }.to_string());
     }
@@ -688,6 +688,38 @@ mod tests {
         assert_eq!(WineVariant::from_version("lutris-7.2"), WineVariant::WineGE);
         assert_eq!(WineVariant::from_version("GE-Proton10-34"), WineVariant::Proton);
         assert_eq!(WineVariant::from_version("Proton-9-0-4"), WineVariant::Proton);
+    }
+
+    fn game(version: &str, ntsync: bool) -> Game {
+        let mut game = Game::new("Test".to_string(), PathBuf::from("/tmp/test.exe"));
+        game.wine.version = version.to_string();
+        game.wine.ntsync = ntsync;
+        game
+    }
+
+    #[test]
+    fn test_ntsync_env_for_proton() {
+        let enabled = build_env(&game("Proton-9-0-4", true), WineVariant::Proton, Path::new("wine"));
+        assert_eq!(enabled.get("PROTON_USE_NTSYNC").map(String::as_str), Some("1"));
+        assert_eq!(enabled.get("PROTON_NO_NTSYNC").map(String::as_str), Some("0"));
+
+        let disabled = build_env(&game("Proton-9-0-4", false), WineVariant::Proton, Path::new("wine"));
+        assert_eq!(disabled.get("PROTON_USE_NTSYNC").map(String::as_str), Some("0"));
+        assert_eq!(disabled.get("PROTON_NO_NTSYNC").map(String::as_str), Some("1"));
+    }
+
+    #[test]
+    fn test_ntsync_env_not_added_for_non_proton() {
+        let inherited_use = std::env::var_os("PROTON_USE_NTSYNC").is_some();
+        let inherited_no = std::env::var_os("PROTON_NO_NTSYNC").is_some();
+        let env = build_env(&game("wine-ge-9-5", true), WineVariant::WineGE, Path::new("wine"));
+
+        if !inherited_use {
+            assert!(!env.contains_key("PROTON_USE_NTSYNC"));
+        }
+        if !inherited_no {
+            assert!(!env.contains_key("PROTON_NO_NTSYNC"));
+        }
     }
 
 }
