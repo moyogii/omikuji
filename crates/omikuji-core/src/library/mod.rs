@@ -146,7 +146,7 @@ impl Default for WineConfig {
             prefix_arch: default_prefix_arch(),
             esync: true,
             fsync: true,
-            ntsync: true,
+            ntsync: false,
             dxvk: false,
             dxvk_version: String::new(),
             vkd3d: false,
