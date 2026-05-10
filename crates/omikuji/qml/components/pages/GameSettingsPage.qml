@@ -83,7 +83,9 @@ Item {
         if (gameModel && gameId !== "") {
             let strVal = String(value)
             if (gameModel.update_draft_field(key, strVal)) {
-                config = gameModel.get_draft_config()
+                let next = gameModel.get_draft_config()
+                if (key === "launch.args") next["launch.args"] = strVal
+                config = next
             }
         }
     }
