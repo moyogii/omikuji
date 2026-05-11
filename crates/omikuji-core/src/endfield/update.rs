@@ -11,6 +11,7 @@ pub struct UpdateInfo {
     pub to_version: String,
     pub download_size: u64,
     pub can_diff: bool,
+    pub delta_supported: bool,
 }
 
 pub async fn check_for_update(manifest: &GachaManifest, edition_id: &str) -> Result<Option<UpdateInfo>> {
@@ -39,6 +40,7 @@ pub async fn check_for_update(manifest: &GachaManifest, edition_id: &str) -> Res
         to_version,
         download_size,
         can_diff,
+        delta_supported: true,
     }))
 }
 

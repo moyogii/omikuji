@@ -50,3 +50,87 @@ pub fn write_installed_version(
 pub fn state_path_for(publisher_slug: &str, game_slug: &str) -> impl AsRef<Path> {
     game_state_dir(publisher_slug, game_slug)
 }
+
+pub fn read_install_dotversion(install_path: &Path) -> Option<String> {
+    let bytes = std::fs::read(install_path.join(".version")).ok()?;
+    if bytes.len() == 3 {
+        return Some(format!("{}.{}.{}", bytes[0], bytes[1], bytes[2]));
+    }
+    if bytes.len() < 4 {
+        return None;
+    }
+    let s = String::from_utf8(bytes).ok()?;
+    let trimmed = s.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
+pub fn scan_globalgamemanagers(
+    install_path: &Path,
+    data_folder: &str,
+    terminator: u8,
+) -> Option<String> {
+    if data_folder.is_empty() {
+        return None;
+    }
+    let path = install_path.join(data_folder).join("globalgamemanagers");
+    scan_unity_file(&path, 4000, 524288, terminator)
+}
+
+pub fn scan_unity_file(
+    file_path: &Path,
+    skip: u64,
+    take: usize,
+    terminator: u8,
+) -> Option<String> {
+    use std::io::{Read, Seek, SeekFrom};
+    let mut file = std::fs::File::open(file_path).ok()?;
+    file.seek(SeekFrom::Start(skip)).ok()?;
+    let mut buf = vec![0u8; take];
+    let n = file.read(&mut buf).ok()?;
+    let window = &buf[..n];
+
+    for pos in 0..window.len() {
+        if pos > 0 && window[pos - 1].is_ascii_digit() {
+            continue;
+        }
+        if let Some(v) = try_parse_version_at(window, pos, terminator) {
+            return Some(v);
+        }
+    }
+
+    None
+}
+
+fn try_parse_version_at(bytes: &[u8], pos: usize, terminator: u8) -> Option<String> {
+    let mut p = pos;
+    let mut parts: [Vec<u8>; 3] = [Vec::new(), Vec::new(), Vec::new()];
+    for i in 0..3 {
+        while p < bytes.len() && bytes[p].is_ascii_digit() && parts[i].len() < 3 {
+            parts[i].push(bytes[p]);
+            p += 1;
+        }
+        if parts[i].is_empty() {
+            return None;
+        }
+        if i < 2 {
+            if p >= bytes.len() || bytes[p] != b'.' {
+                return None;
+            }
+            p += 1;
+        }
+    }
+    if parts[0].len() > 2 {
+        return None;
+    }
+    if p >= bytes.len() || bytes[p] != terminator {
+        return None;
+    }
+    let major = String::from_utf8(parts[0].clone()).ok()?;
+    let minor = String::from_utf8(parts[1].clone()).ok()?;
+    let patch = String::from_utf8(parts[2].clone()).ok()?;
+    Some(format!("{}.{}.{}", major, minor, patch))
+}

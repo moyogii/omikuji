@@ -321,16 +321,16 @@ ApplicationWindow {
         function onNotification(level, title, message) {
             toastManager.show(level, title, message)
         }
-        function onUpdate_required(gameId, appId, displayName, fromVersion, toVersion, downloadSize, canDiff) {
+        function onUpdate_required(gameId, appId, displayName, fromVersion, toVersion, downloadSize, canDiff, deltaSupported) {
             updateDialog.show({
                 gameId: gameId,
                 appId: appId,
                 displayName: displayName,
                 fromVersion: fromVersion,
                 toVersion: toVersion,
-                // stringified u64 to avoid js number precision loss
                 downloadBytes: parseInt(downloadSize, 10) || 0,
-                canDiff: canDiff
+                canDiff: canDiff,
+                deltaSupported: deltaSupported
             })
         }
         function onError_required(gameId, displayName, title, message, action) {

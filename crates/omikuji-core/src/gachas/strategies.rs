@@ -24,6 +24,7 @@ pub struct ExistingInstallInfo {
     pub scratch_bytes: u64,
     pub segments: u32,
     pub has_install: bool,
+    pub installed_version: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -34,6 +35,15 @@ pub struct GachaUpdateInfo {
     pub to_version: String,
     pub download_size: u64,
     pub can_diff: bool,
+    pub delta_supported: bool,
+}
+
+pub fn normalize_version(v: &str) -> String {
+    let mut parts: Vec<&str> = v.split('.').collect();
+    while parts.len() > 1 && parts.last() == Some(&"0") {
+        parts.pop();
+    }
+    parts.join(".")
 }
 
 pub fn source_key(manifest: &GachaManifest) -> Result<&'static str> {
@@ -199,6 +209,7 @@ pub async fn check_for_update(
                 to_version: info.to_version,
                 download_size: info.download_size,
                 can_diff: info.can_diff,
+                delta_supported: info.delta_supported,
             })
         }
         GRYPHLINE_RESOURCE_PATCH => {
@@ -210,6 +221,7 @@ pub async fn check_for_update(
                 to_version: info.to_version,
                 download_size: info.download_size,
                 can_diff: info.can_diff,
+                delta_supported: info.delta_supported,
             })
         }
         KURO_RESOURCE_INDEX => {
@@ -223,6 +235,7 @@ pub async fn check_for_update(
                 to_version: info.to_version,
                 download_size: info.download_size,
                 can_diff: info.can_diff,
+                delta_supported: info.delta_supported,
             })
         }
         _ => None,
@@ -243,6 +256,22 @@ pub fn installed_version(manifest: &GachaManifest, edition_id: &str) -> Option<S
     }
 }
 
+pub fn read_install_version(
+    manifest: &GachaManifest,
+    edition_id: &str,
+    install_path: &Path,
+) -> Option<String> {
+    let edition = manifest.editions.iter().find(|e| e.id == edition_id)?;
+    match manifest.install_strategy.as_str() {
+        HOYO_SOPHON => crate::hoyo::read_install_version(install_path, &edition.data_folder),
+        GRYPHLINE_RESOURCE_PATCH => {
+            crate::endfield::read_install_version(install_path, &edition.data_folder)
+        }
+        KURO_RESOURCE_INDEX => crate::kuro::read_install_version(install_path, &edition.data_folder),
+        _ => None,
+    }
+}
+
 pub fn inspect_existing(
     manifest: &GachaManifest,
     edition_id: &str,
@@ -250,7 +279,7 @@ pub fn inspect_existing(
     temp_dir: Option<&Path>,
 ) -> ExistingInstallInfo {
     let app_id = build_app_id(manifest, edition_id, &[]);
-    match manifest.install_strategy.as_str() {
+    let mut info = match manifest.install_strategy.as_str() {
         HOYO_SOPHON => {
             let (bytes, segments) =
                 crate::hoyo::source::inspect_hoyo_temp(&app_id, install_path, temp_dir);
@@ -267,6 +296,7 @@ pub fn inspect_existing(
                 scratch_bytes: bytes,
                 segments,
                 has_install,
+                installed_version: None,
             }
         }
         GRYPHLINE_RESOURCE_PATCH => {
@@ -283,6 +313,7 @@ pub fn inspect_existing(
                 scratch_bytes: bytes,
                 segments,
                 has_install,
+                installed_version: None,
             }
         }
         KURO_RESOURCE_INDEX => {
@@ -300,10 +331,15 @@ pub fn inspect_existing(
                 scratch_bytes: 0,
                 segments: 0,
                 has_install,
+                installed_version: None,
             }
         }
         _ => ExistingInstallInfo::default(),
+    };
+    if info.has_install {
+        info.installed_version = read_install_version(manifest, edition_id, install_path);
     }
+    info
 }
 
 pub fn resolve_poster(manifest: &GachaManifest) -> String {

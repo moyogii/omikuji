@@ -366,6 +366,8 @@ pub struct UpdateNotification {
     pub download_size: u64,
     // false = server has no diff path, full reinstall required
     pub can_diff: bool,
+    // false = game doesnt ship deltas at all (e.g. hi3 today), distinct from "your version too old to delta"
+    pub delta_supported: bool,
 }
 
 lazy_static::lazy_static! {

@@ -27,6 +27,8 @@ pub struct PatchConfig {
     // relative to cdn_url
     pub index_file_rel: String,
     pub base_url_rel: String,
+    pub download_size: u64,
+    pub un_compress_size: u64,
 }
 
 pub async fn fetch_resource_info(manifest: &GachaManifest, edition_id: &str) -> Result<ResourceInfo> {
@@ -77,6 +79,8 @@ pub async fn fetch_resource_info(manifest: &GachaManifest, edition_id: &str) -> 
                         version: p.version,
                         index_file_rel: p.index_file,
                         base_url_rel: p.base_url,
+                        download_size: p.size,
+                        un_compress_size: p.un_compress_size,
                     })
                     .collect(),
             )
@@ -166,6 +170,10 @@ struct RawPatchConfig {
     index_file: String,
     #[serde(rename = "baseUrl")]
     base_url: String,
+    #[serde(default)]
+    size: u64,
+    #[serde(rename = "unCompressSize", default)]
+    un_compress_size: u64,
 }
 
 #[derive(Debug, Clone, Deserialize)]

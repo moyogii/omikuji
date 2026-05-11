@@ -54,13 +54,19 @@ impl DownloadSource for HoyoSource {
             .ok_or_else(|| anyhow!("no main package info for {}", parsed.display_name))?;
         let target_version = main.tag.clone();
 
-        if !main.diff_tags.contains(&from_version) {
-            return Err(anyhow!(
-                "server has no diff path from {} to {} — full reinstall required",
-                from_version,
-                target_version
-            ));
-        }
+        let target = crate::gachas::strategies::normalize_version(&from_version);
+        let matched_tag = main
+            .diff_tags
+            .iter()
+            .find(|t| crate::gachas::strategies::normalize_version(t) == target)
+            .cloned();
+        let Some(diff_key) = matched_tag else {
+            eprintln!(
+                "[hoyo::update] no diff path from {} to {} for {}, falling back to full reinstall",
+                from_version, target_version, parsed.display_name
+            );
+            return self.install(entry).await;
+        };
 
         let diffs = sophon::api::fetch_patch_build(parsed.edition, main).await?;
 
@@ -109,7 +115,7 @@ impl DownloadSource for HoyoSource {
             game_diff,
             entry.install_path.clone(),
             temp_root.clone(),
-            from_version.clone(),
+            diff_key.clone(),
             on_progress.clone(),
             is_cancelled.clone(),
         )
@@ -124,14 +130,14 @@ impl DownloadSource for HoyoSource {
             let Some(voice_diff) = diffs.get_for(field) else {
                 continue;
             };
-            if !voice_diff.stats.contains_key(&from_version) {
+            if !voice_diff.stats.contains_key(&diff_key) {
                 continue;
             }
             sophon::patcher::apply_update(
                 voice_diff,
                 entry.install_path.clone(),
                 temp_root.clone(),
-                from_version.clone(),
+                diff_key.clone(),
                 on_progress.clone(),
                 is_cancelled.clone(),
             )

@@ -42,7 +42,6 @@ QML side held up with tape and prays🙏
 Not implemented/WIP/Planning to add: 
 - i18n/qsTr (ehahahshhaha)
 - Amazon Games
-- PGR technically doesn't work for the simple fact that its CDN is stuck on v3.4.0 (?)
 - make gacha stuff optional (not automatically fetched on startup)
 - more CLI commands which i cant be bothered with yet
 - Genuinely fix some UI stuff (e.g, settings page edit/add games tabs. I dont like them there ngl)
@@ -91,6 +90,7 @@ Bug reports (especially these), requests and PRs welcome. A few notes:
 - Whatever other 20 reasons people usually list in their contributing section
 - Might still have no proper app-wise stacktraces when releasing it (just a note if for x reasons the app crashes)
 
+- assets repo: [omikuji-assets](https://github.com/reakjra/omikuji-assets)
 
 ## License
 

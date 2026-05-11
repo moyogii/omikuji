@@ -125,6 +125,28 @@ pub fn set_installed_version(game_slug: &str, edition: HoyoEdition, version: &st
     );
 }
 
+pub fn read_install_version(install_path: &std::path::Path, data_folder: &str) -> Option<String> {
+    use crate::gachas::state;
+    if let Some(v) = state::read_install_dotversion(install_path) {
+        return Some(v);
+    }
+    if let Some(v) = state::scan_globalgamemanagers(install_path, data_folder, b'_') {
+        return Some(v);
+    }
+    if let Some(v) = state::scan_globalgamemanagers(install_path, data_folder, 0) {
+        return Some(v);
+    }
+    if data_folder.is_empty() {
+        return None;
+    }
+    state::scan_unity_file(
+        &install_path.join(data_folder).join("data.unity3d"),
+        2000,
+        524288,
+        0,
+    )
+}
+
 pub fn jadeite_dir() -> PathBuf {
     crate::runtime_dir().join("jadeite")
 }

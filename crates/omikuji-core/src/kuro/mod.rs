@@ -45,6 +45,60 @@ pub fn set_installed_version(game_slug: &str, edition: &str, version: &str) {
     crate::gachas::state::write_installed_version(PUBLISHER_SLUG, game_slug, edition, version);
 }
 
+pub fn read_install_version(install_path: &std::path::Path, data_folder: &str) -> Option<String> {
+    use crate::gachas::state;
+    if let Some(v) = state::read_install_dotversion(install_path) {
+        return Some(v);
+    }
+    if let Some(v) = read_package_version_json(install_path) {
+        return Some(v);
+    }
+    if let Some(v) = read_wuwa_resources_version(install_path) {
+        return Some(v);
+    }
+    if let Some(v) = state::scan_globalgamemanagers(install_path, data_folder, b'_') {
+        return Some(v);
+    }
+    state::scan_globalgamemanagers(install_path, data_folder, 0)
+}
+
+fn read_wuwa_resources_version(install_path: &std::path::Path) -> Option<String> {
+    let resources_dir = install_path.join("Client/Saved/Resources");
+    let entries = std::fs::read_dir(&resources_dir).ok()?;
+
+    let mut best: Option<(u32, u32, u32)> = None;
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let name_str = name.to_string_lossy();
+        let parts: Vec<&str> = name_str.split('.').collect();
+        if parts.len() != 3 {
+            continue;
+        }
+        let Ok(a) = parts[0].parse::<u32>() else { continue };
+        let Ok(b) = parts[1].parse::<u32>() else { continue };
+        let Ok(c) = parts[2].parse::<u32>() else { continue };
+        let v = (a, b, c);
+        if best.is_none_or(|bv| v > bv) {
+            best = Some(v);
+        }
+    }
+
+    best.map(|(a, b, c)| format!("{}.{}.{}", a, b, c))
+}
+
+fn read_package_version_json(install_path: &std::path::Path) -> Option<String> {
+    let s = std::fs::read_to_string(install_path.join("version.json")).ok()?;
+    let colon = s.find(':')?;
+    let after = &s[colon + 1..];
+    let end = after.find('}').unwrap_or(after.len());
+    let v = after[..end].trim().trim_matches('"');
+    if v.is_empty() {
+        None
+    } else {
+        Some(v.to_string())
+    }
+}
+
 
 // no-op today: kuro writes directly into install_dir so theres no scratch to clean , kept for shape-consistency with hoyo/endfield
 pub fn cleanup_kuro_state(_app_id: &str, _install_path: &std::path::Path, _temp_dir: Option<&std::path::Path>) {}

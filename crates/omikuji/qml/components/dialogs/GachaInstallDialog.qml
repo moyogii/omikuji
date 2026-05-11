@@ -19,6 +19,7 @@ Item {
     property var manifest: null
 
     signal installEnqueued(string downloadId)
+    signal imported(string gameId)
     signal cancelled()
 
     property bool opened: false
@@ -51,6 +52,7 @@ Item {
     property real existingTempBytes: 0
     property int existingTempSegments: 0
     property bool existingInstall: false
+    property string existingVersion: ""
 
     readonly property string displayName: root.manifest ? root.manifest.display_name : ""
     readonly property string installFolderName:
@@ -95,6 +97,7 @@ Item {
     }
 
     function hasEnoughSpace() {
+        if (existingInstall) return true
         if (installFreeBytes < 0) return false
         if (downloadBytes < 0 || installBytes < 0) return false
         if (!usesTempDir) {
@@ -204,6 +207,7 @@ Item {
             existingTempBytes = 0
             existingTempSegments = 0
             existingInstall = false
+            existingVersion = ""
             sizeFetchDebounce.stop()
         }
     }
@@ -279,7 +283,7 @@ Item {
 
     function refreshExisting() {
         if (!gameModel || !manifest || effectiveInstallPath === "") {
-            existingTempBytes = 0; existingTempSegments = 0; existingInstall = false; return
+            existingTempBytes = 0; existingTempSegments = 0; existingInstall = false; existingVersion = ""; return
         }
         let raw = gameModel.gacha_check_existing_install(
             manifestId, editionId, effectiveInstallPath, tempPath.trim()
@@ -289,6 +293,7 @@ Item {
         existingTempBytes = parseInt(p.bytes) || 0
         existingTempSegments = parseInt(p.segments) || 0
         existingInstall = p.has_install === true
+        existingVersion = (p.installed_version && typeof p.installed_version === "string") ? p.installed_version : ""
     }
 
     // hoverEnabled true so cards underneath dont stay lit while the dialog is open
@@ -519,7 +524,11 @@ Item {
                             parts.push(formatBytes(root.installFreeBytes) + " free")
                         }
                         if (root.existingInstall) {
-                            parts.push("existing install detected")
+                            if (root.existingVersion !== "") {
+                                parts.push("existing install detected · v" + root.existingVersion)
+                            } else {
+                                parts.push("Unknown Version")
+                            }
                         }
                         return parts.join(" · ")
                     }
@@ -663,7 +672,9 @@ Item {
                     }
                     Text {
                         anchors.centerIn: parent
-                        text: (root.existingTempSegments > 0 || root.existingInstall) ? "Resume" : "Install"
+                        text: root.existingInstall
+                            ? "Import"
+                            : (root.existingTempSegments > 0 ? "Resume" : "Install")
                         color: installBtn.canInstall
                             ? theme.accentOn
                             : Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.35)
@@ -681,6 +692,18 @@ Item {
                             let runner = root.runnerOptions.length > 0
                                 ? root.runnerOptions[root.runnerIndex].value
                                 : "system"
+                            if (root.existingInstall) {
+                                let gid = root.gameModel.gacha_import_after_install(
+                                    root.manifestId,
+                                    root.editionId,
+                                    root.displayName,
+                                    root.effectiveInstallPath,
+                                    runner,
+                                    root.prefixPath
+                                )
+                                root.imported(gid || "")
+                                return
+                            }
                             let id = root.downloadModel.enqueue_gacha(
                                 root.manifestId,
                                 root.editionId,

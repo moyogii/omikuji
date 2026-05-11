@@ -15,6 +15,7 @@ Item {
     property string toVersion: ""
     property real downloadBytes: 0
     property bool canDiff: true
+    property bool deltaSupported: true
 
     visible: false
     z: 2000
@@ -31,6 +32,7 @@ Item {
             toVersion = payload.toVersion || ""
             downloadBytes = payload.downloadBytes || 0
             canDiff = payload.canDiff === undefined ? true : payload.canDiff
+            deltaSupported = payload.deltaSupported === undefined ? true : payload.deltaSupported
         }
         visible = true
         forceActiveFocus()
@@ -185,12 +187,19 @@ Item {
 
                     Text {
                         Layout.fillWidth: true
-                        text: root.canDiff
-                            ? (root.downloadBytes > 0
-                                ? ("Delta update · " + root.formatBytes(root.downloadBytes))
-                                : "Delta update")
-                            : "Full reinstall required — your version is too old for a delta patch"
-                        color: root.canDiff ? theme.textMuted : (theme.danger || "#e06060")
+                        text: {
+                            if (root.canDiff) {
+                                return root.downloadBytes > 0
+                                    ? ("Delta update · " + root.formatBytes(root.downloadBytes))
+                                    : "Delta update"
+                            }
+                            let name = root.displayName || "the game"
+                            if (!root.deltaSupported) {
+                                return "Seems there's an update for " + name + ", however, it doesn't handle delta patches. Wanna reinstall the game to update?"
+                            }
+                            return "Your install is too old for a delta patch. Reinstall " + name + " to update?"
+                        }
+                        color: theme.textMuted
                         font.pixelSize: 12
                         wrapMode: Text.Wrap
                     }
@@ -244,8 +253,7 @@ Item {
                         anchors.fill: parent
                         radius: 18
                         color: theme.accent
-                        opacity: !root.canDiff ? 0.35
-                            : updateHover.containsPress ? 0.8
+                        opacity: updateHover.containsPress ? 0.8
                             : updateHover.containsMouse ? 0.95 : 0.9
                         scale: updateHover.containsPress ? 0.97 : 1.0
                         Behavior on opacity { NumberAnimation { duration: 100 } }
@@ -254,7 +262,7 @@ Item {
                     Text {
                         id: updateLabel
                         anchors.centerIn: parent
-                        text: "Update"
+                        text: root.canDiff ? "Update" : "Reinstall"
                         color: theme.accentOn
                         font.pixelSize: 13
                         font.weight: Font.DemiBold
@@ -263,10 +271,8 @@ Item {
                         id: updateHover
                         anchors.fill: parent
                         hoverEnabled: true
-                        enabled: root.canDiff
-                        cursorShape: enabled ? Qt.PointingHandCursor : Qt.ForbiddenCursor
+                        cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            if (!root.canDiff) return
                             root.updateRequested(root.gameId, root.appId, root.fromVersion)
                             root.hide()
                         }

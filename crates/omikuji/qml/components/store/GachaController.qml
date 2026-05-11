@@ -29,6 +29,7 @@ Item {
             hide()
             ctrl.installEnqueued()
         }
+        onImported: (gameId) => hide()
     }
 
     Connections {

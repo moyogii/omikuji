@@ -71,6 +71,7 @@ pub mod qobject {
             to_version: &QString,
             download_size: &QString,
             can_diff: bool,
+            delta_supported: bool,
         );
 
         // cxx_name required: cxx-qt doesn't auto-camelCase signal names for qml handlers
@@ -1133,6 +1134,7 @@ impl qobject::GameModel {
                         to_version: info.to_version,
                         download_size: info.download_size,
                         can_diff: info.can_diff,
+                        delta_supported: info.delta_supported,
                     },
                 );
                 return false;
@@ -1505,6 +1507,7 @@ impl qobject::GameModel {
                 &QString::from(&n.to_version),
                 &QString::from(&n.download_size.to_string()),
                 n.can_diff,
+                n.delta_supported,
             );
         }
     }
@@ -2564,9 +2567,13 @@ impl qobject::GameModel {
             &install,
             temp.as_deref(),
         );
+        let version_json = match &info.installed_version {
+            Some(v) => format!(r#""{}""#, v.replace('"', "")),
+            None => "null".to_string(),
+        };
         QString::from(&format!(
-            r#"{{"bytes":{},"segments":{},"has_install":{}}}"#,
-            info.scratch_bytes, info.segments, info.has_install
+            r#"{{"bytes":{},"segments":{},"has_install":{},"installed_version":{}}}"#,
+            info.scratch_bytes, info.segments, info.has_install, version_json
         ))
     }
 
@@ -2657,6 +2664,33 @@ impl qobject::GameModel {
         if let Err(e) = Library::save_game_static(&game) {
             eprintln!("[gacha_import] failed to save: {}", e);
             return QString::default();
+        }
+
+        let install_path_buf = std::path::PathBuf::from(&install_s);
+        if let Some(version) = omikuji_core::gachas::strategies::read_install_version(
+            &manifest,
+            &edition.id,
+            &install_path_buf,
+        ) {
+            omikuji_core::gachas::state::write_installed_version(
+                &manifest.publisher_slug,
+                &manifest.game_slug,
+                &edition.id,
+                &version,
+            );
+            let dotversion = install_path_buf.join(".version");
+            if !dotversion.exists() {
+                let _ = std::fs::write(&dotversion, &version);
+            }
+            eprintln!(
+                "[gacha_import] detected version {} for {}/{} {}",
+                version, manifest.publisher_slug, manifest.game_slug, edition.id
+            );
+        } else {
+            eprintln!(
+                "[gacha_import] coulndt detect version on disk for {}/{} {}, update check skipped until next install",
+                manifest.publisher_slug, manifest.game_slug, edition.id
+            );
         }
 
         let id_for_media = game.metadata.id.clone();
@@ -2900,6 +2934,7 @@ struct GachaUpdateInfo {
     to_version: String,
     download_size: u64,
     can_diff: bool,
+    delta_supported: bool,
 }
 
 // launch_game is called from the Qt event loop, which already runs inside the
@@ -2928,6 +2963,7 @@ fn blocking_check_gacha_update(app_id: &str) -> Option<GachaUpdateInfo> {
                 to_version: info.to_version,
                 download_size: info.download_size,
                 can_diff: info.can_diff,
+                delta_supported: info.delta_supported,
             })
         })
     })

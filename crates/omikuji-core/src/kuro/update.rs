@@ -10,8 +10,8 @@ pub struct UpdateInfo {
     pub from_version: String,
     pub to_version: String,
     pub download_size: u64,
-    // always false until dpatchz is ported
     pub can_diff: bool,
+    pub delta_supported: bool,
 }
 
 pub async fn check_for_update(manifest: &GachaManifest, edition_id: &str) -> Result<Option<UpdateInfo>> {
@@ -22,13 +22,21 @@ pub async fn check_for_update(manifest: &GachaManifest, edition_id: &str) -> Res
     if info.version == from_version || info.version.is_empty() {
         return Ok(None);
     }
+    let target = crate::gachas::strategies::normalize_version(&from_version);
+    let download_size = info
+        .patch_configs
+        .iter()
+        .find(|p| crate::gachas::strategies::normalize_version(&p.version) == target)
+        .map(|p| p.download_size)
+        .unwrap_or(0);
     Ok(Some(UpdateInfo {
         game_slug: manifest.game_slug.clone(),
         edition: edition_id.to_string(),
         from_version,
         to_version: info.version,
-        download_size: 0,
-        can_diff: false,
+        download_size,
+        can_diff: true,
+        delta_supported: true,
     }))
 }
 

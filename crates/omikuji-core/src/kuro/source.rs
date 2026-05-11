@@ -19,68 +19,76 @@ pub struct KuroSource;
 #[async_trait]
 impl DownloadSource for KuroSource {
     async fn install(&self, entry: &DownloadEntry) -> Result<()> {
-        if !matches!(entry.kind, DownloadKind::Install) {
-            return Err(anyhow!("install() called on non-install entry"));
-        }
-
-        let (manifest, edition_id, _) = crate::gachas::strategies::find_for_app_id(&entry.app_id)
-            .ok_or_else(|| anyhow!("no manifest for app_id {}", entry.app_id))?;
-        let game_slug = manifest.game_slug.clone();
-
-        let info = api::fetch_resource_info(&manifest, &edition_id).await?;
-        let index = api::fetch_index_file(&info.index_file_url).await?;
-        if index.resource.is_empty() {
-            return Err(anyhow!("indexFile returned zero resources"));
-        }
-
-        let total_bytes: u64 = index.resource.iter().map(|r| r.size).sum();
-        let downloaded = Arc::new(AtomicU64::new(0));
-        let start = Instant::now();
-
-        let install_root = entry.install_path.clone();
-        std::fs::create_dir_all(&install_root)?;
-
-        let id = entry.id.clone();
-        let base_url = info.base_url.clone();
-        let resources = index.resource.clone();
-        let install_root_for_workers = install_root.clone();
-
-        let stream = futures_util::stream::iter(resources.into_iter().map(
-            move |file| {
-                let id = id.clone();
-                let downloaded = downloaded.clone();
-                let install_root = install_root_for_workers.clone();
-                let base_url = base_url.clone();
-                let start = start;
-                let total = total_bytes;
-                async move {
-                    if check_control(&id) != ControlSignal::None {
-                        return Ok::<_, anyhow::Error>(());
-                    }
-                    download_one(&id, &file, &base_url, &install_root, &downloaded, total, start)
-                        .await
-                }
-            },
-        ))
-        .buffer_unordered(PARALLEL_FILES);
-
-        tokio::pin!(stream);
-        while let Some(res) = stream.next().await {
-            res?;
-            if check_control(&entry.id) != ControlSignal::None {
-                return Ok(());
-            }
-        }
-
-        for stale in &index.delete_files {
-            let p = install_root.join(stale);
-            if p.exists() {
-                let _ = std::fs::remove_file(&p);
-            }
-        }
-        super::set_installed_version(&game_slug, &edition_id, &info.version);
-        Ok(())
+        run_install_or_update(entry).await
     }
+
+    async fn update(&self, entry: &DownloadEntry) -> Result<()> {
+        run_install_or_update(entry).await
+    }
+}
+
+async fn run_install_or_update(entry: &DownloadEntry) -> Result<()> {
+    if !matches!(entry.kind, DownloadKind::Install | DownloadKind::Update { .. }) {
+        return Err(anyhow!("KuroSource: unexpected DownloadKind"));
+    }
+
+    let (manifest, edition_id, _) = crate::gachas::strategies::find_for_app_id(&entry.app_id)
+        .ok_or_else(|| anyhow!("no manifest for app_id {}", entry.app_id))?;
+    let game_slug = manifest.game_slug.clone();
+
+    let info = api::fetch_resource_info(&manifest, &edition_id).await?;
+    let index = api::fetch_index_file(&info.index_file_url).await?;
+    if index.resource.is_empty() {
+        return Err(anyhow!("indexFile returned zero resources"));
+    }
+
+    let total_bytes: u64 = index.resource.iter().map(|r| r.size).sum();
+    let downloaded = Arc::new(AtomicU64::new(0));
+    let start = Instant::now();
+
+    let install_root = entry.install_path.clone();
+    std::fs::create_dir_all(&install_root)?;
+
+    let id = entry.id.clone();
+    let base_url = info.base_url.clone();
+    let resources = index.resource.clone();
+    let install_root_for_workers = install_root.clone();
+
+    let stream = futures_util::stream::iter(resources.into_iter().map(
+        move |file| {
+            let id = id.clone();
+            let downloaded = downloaded.clone();
+            let install_root = install_root_for_workers.clone();
+            let base_url = base_url.clone();
+            let start = start;
+            let total = total_bytes;
+            async move {
+                if check_control(&id) != ControlSignal::None {
+                    return Ok::<_, anyhow::Error>(());
+                }
+                download_one(&id, &file, &base_url, &install_root, &downloaded, total, start)
+                    .await
+            }
+        },
+    ))
+    .buffer_unordered(PARALLEL_FILES);
+
+    tokio::pin!(stream);
+    while let Some(res) = stream.next().await {
+        res?;
+        if check_control(&entry.id) != ControlSignal::None {
+            return Ok(());
+        }
+    }
+
+    for stale in &index.delete_files {
+        let p = install_root.join(stale);
+        if p.exists() {
+            let _ = std::fs::remove_file(&p);
+        }
+    }
+    super::set_installed_version(&game_slug, &edition_id, &info.version);
+    Ok(())
 }
 
 async fn download_one(
