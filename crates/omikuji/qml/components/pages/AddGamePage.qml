@@ -23,11 +23,18 @@ Item {
     signal gameCreatedAndPlay(string gameId)
 
     // tabs live in the TopBar, Main binds topBar.tabs when currentView is add
-    property var tabs: [
-        { label: "Game Info", kind: "info" },
-        { label: "Runner",    kind: "runner" },
-        { label: "System",    kind: "system" }
-    ]
+    property var tabs: {
+        let base = [
+            { label: "Game Info", kind: "info" },
+            { label: "Runner",    kind: "runner" }
+        ]
+        let isFlatpakLauncher = gameModel ? gameModel.is_flatpak() : false
+        let isSteamGame = root.config["runner.type"] === "steam"
+        if (!(isFlatpakLauncher && isSteamGame)) {
+            base.push({ label: "System", kind: "system" })
+        }
+        return base
+    }
     property int currentTabIndex: 0
     readonly property string currentKind:
         tabs[currentTabIndex] ? tabs[currentTabIndex].kind : "info"

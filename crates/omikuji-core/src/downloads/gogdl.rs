@@ -30,7 +30,8 @@ pub struct GogdlSource;
 fn gogdl_bin() -> Result<PathBuf> {
     crate::gog::find_gogdl().ok_or_else(|| {
         anyhow!(
-            "gogdl not found — install via first-run components or place at ~/.local/share/omikuji/runtime/gogdl"
+            "gogdl not found — install via first-run components or place at {}",
+            crate::runtime_dir().join("gogdl").display()
         )
     })
 }

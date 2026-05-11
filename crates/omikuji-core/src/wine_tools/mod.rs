@@ -131,6 +131,7 @@ fn find_winetricks() -> Result<PathBuf> {
     }
     anyhow::bail!(
         "winetricks not found. install via your distro (package 'winetricks') \
-         or drop the script at ~/.local/share/omikuji/runtime/winetricks"
+         or drop the script at {}",
+        crate::runtime_dir().join("winetricks").display()
     )
 }

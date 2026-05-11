@@ -51,15 +51,23 @@ Item {
             M3Dropdown {
                 label: "Runner"
                 width: parent.width
-                options: [
-                    { label: "Wine", value: "wine" },
-                    { label: "Steam", value: "steam" },
-                    { label: "Flatpak", value: "flatpak" }
-                ]
+                options: {
+                    let opts = [
+                        { label: "Wine", value: "wine" },
+                        { label: "Steam", value: "steam" }
+                    ]
+                    let isFlatpakLauncher = gameModel ? gameModel.is_flatpak() : false
+                    let currentIsFlatpak = config["runner.type"] === "flatpak"
+                    if (!isFlatpakLauncher || currentIsFlatpak) {
+                        opts.push({ label: "Flatpak", value: "flatpak" })
+                    }
+                    return opts
+                }
                 currentIndex: {
-                    let t = config["runner.type"] || ""
-                    if (t === "steam") return 1
-                    if (t === "flatpak") return 2
+                    let t = config["runner.type"] || "wine"
+                    for (let i = 0; i < options.length; i++) {
+                        if (options[i].value === t) return i
+                    }
                     return 0
                 }
                 onSelected: (val) => updateField("runner.type", val)

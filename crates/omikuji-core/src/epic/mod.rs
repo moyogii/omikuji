@@ -197,7 +197,7 @@ impl EpicStore {
 
 fn legendary_bin() -> Result<PathBuf> {
     crate::downloads::legendary::find_legendary().ok_or_else(|| {
-        anyhow!("legendary not found — install it or place the binary at ~/.local/share/omikuji/runtime/legendary")
+        anyhow!("legendary not found — install it or place the binary at {}", crate::runtime_dir().join("legendary").display())
     })
 }
 

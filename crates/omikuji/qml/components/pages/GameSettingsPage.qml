@@ -26,12 +26,17 @@ Item {
     signal refetchMediaRequested(string gameId)
 
     // tabs live in the TopBar so Main can surface them in the centered pill
+    // could DRY this with AddGamePage.qml's tabs array... one day
     property var tabs: {
         let base = [
             { label: "Game Info", kind: "info" },
-            { label: "Runner",    kind: "runner" },
-            { label: "System",    kind: "system" }
+            { label: "Runner",    kind: "runner" }
         ]
+        let isFlatpakLauncher = gameModel ? gameModel.is_flatpak() : false
+        let isSteamGame = root.config["runner.type"] === "steam"
+        if (!(isFlatpakLauncher && isSteamGame)) {
+            base.push({ label: "System", kind: "system" })
+        }
         if (root.config["source.kind"] === "epic") {
             base.push({ label: "Epic", kind: "epic", icon: "shield_moon" })
         }

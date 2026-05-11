@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.reakjra.omikuji</id>
+  <url type="homepage">https://github.com/reakjra/omikuji</url>
+  <url type="bugtracker">https://github.com/reakjra/omikuji/issues</url>
+  <url type="vcs-browser">https://github.com/reakjra/omikuji</url>
+  <developer_name>reakjra</developer_name>
+  <name>Omikuji</name>
+  <summary>Qt/QML based game launcher for Linux</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <content_rating type="oars-1.1"/>
+  <categories>
+    <category>Game</category>
+    <category>PackageManager</category>
+  </categories>
+  <description>
+    <p>
+      A Qt/QML based games/apps launcher for Linux. Built 'cause I couldn't bear having 3 different launchers for just games.
+    </p>
+  </description>
+  <releases>
+    <release version="0.0.0" date="2026-05-06">
+      <description>
+        <ul>
+          <li>Here you will find a description of what has changed in the new version.</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+  <launchable type="desktop-id">io.github.reakjra.omikuji</launchable>
+  <branding>
+    <color type="primary" scheme_preference="light">#e1cc4c</color>
+    <color type="primary" scheme_preference="dark">#c41818</color>
+  </branding>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/reakjra/omikuji/761c9dc92924badb7018f3d9783262cb69cc1c98/docs/screenshots/main_library.png</image>
+      <caption>Library</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/reakjra/omikuji/761c9dc92924badb7018f3d9783262cb69cc1c98/docs/screenshots/edit_page.png</image>
+      <caption>Edit Game</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/reakjra/omikuji/761c9dc92924badb7018f3d9783262cb69cc1c98/docs/screenshots/epic_games_store.png</image>
+      <caption>Epic Games Store</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/reakjra/omikuji/761c9dc92924badb7018f3d9783262cb69cc1c98/docs/screenshots/epic_games_store_download.png</image>
+      <caption>Epic Install Dialog</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/reakjra/omikuji/761c9dc92924badb7018f3d9783262cb69cc1c98/docs/screenshots/gacha_store.png</image>
+      <caption>Gacha Store</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/reakjra/omikuji/761c9dc92924badb7018f3d9783262cb69cc1c98/docs/screenshots/gacha_store_download.png</image>
+      <caption>Gacha Install Dialog</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/reakjra/omikuji/761c9dc92924badb7018f3d9783262cb69cc1c98/docs/screenshots/settings_page_interface.png</image>
+      <caption>Interface Settings</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/reakjra/omikuji/761c9dc92924badb7018f3d9783262cb69cc1c98/docs/screenshots/settings_page_componenets.png</image>
+      <caption>Components Settings</caption>
+    </screenshot>
+  </screenshots>
+
+</component>

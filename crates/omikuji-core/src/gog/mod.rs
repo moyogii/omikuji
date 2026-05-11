@@ -760,7 +760,8 @@ fn find_json_blob(s: &str) -> Option<GogCredentials> {
 fn gogdl_bin() -> Result<PathBuf> {
     find_gogdl().ok_or_else(|| {
         anyhow!(
-            "gogdl not found — install via first-run components or place the binary at ~/.local/share/omikuji/runtime/gogdl"
+            "gogdl not found — install via first-run components or place the binary at {}",
+            crate::runtime_dir().join("gogdl").display()
         )
     })
 }

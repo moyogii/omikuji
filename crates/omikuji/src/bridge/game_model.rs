@@ -258,6 +258,9 @@ pub mod qobject {
         #[qinvokable]
         fn steam_local_library_image(self: &GameModel, appid: &QString) -> QString;
 
+        #[qinvokable]
+        fn is_flatpak(self: &GameModel) -> bool;
+
         // blocking http inside the tokio runtime panics; we escape to an os thread first
         #[qinvokable]
         fn steam_sync_playtime(self: Pin<&mut GameModel>);
@@ -1778,6 +1781,10 @@ impl qobject::GameModel {
             Some(path) => QString::from(&*path.to_string_lossy()),
             None => QString::default(),
         }
+    }
+
+    fn is_flatpak(&self) -> bool {
+        std::env::var("FLATPAK_ID").is_ok()
     }
 
     fn steam_import_game(mut self: Pin<&mut Self>, appid: &QString, name: &QString) -> bool {

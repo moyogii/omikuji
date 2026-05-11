@@ -1,7 +1,4 @@
 // launcher settings. loaded once at startup into a OnceLock singleton.
-// deliberately XDG-non-compliant: settings sits alongside the rest of the
-// launcher state so "rm -rf ~/.local/share/omikuji" is a complete reset.
-// i dont like having files scattered in several paths, nuke or backup, this makes it easier. BLEEEEEEEEEEEE
 //
 // the settings file's own location is a fixed anchor at
 // dirs::data_dir()/omikuji/settings.toml; not user-redirectable, else chicken-and-egg when resloving where to read the redirect from.
@@ -68,16 +65,20 @@ pub struct PathsSettings {
 
 impl Default for PathsSettings {
     fn default() -> Self {
+        let base = dirs::data_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("omikuji");
+        let s = |sub: &str| base.join(sub).to_string_lossy().into_owned();
         Self {
-            data_dir: "~/.local/share/omikuji".into(),
-            library_dir: "~/.local/share/omikuji/library".into(),
-            gachas_dir: "~/.local/share/omikuji/gachas".into(),
-            runners_dir: "~/.local/share/omikuji/runners".into(),
-            dll_packs_dir: "~/.local/share/omikuji/components".into(),
-            prefixes_dir: "~/.local/share/omikuji/prefixes".into(),
-            cache_dir: "~/.local/share/omikuji/cache".into(),
-            logs_dir: "~/.local/share/omikuji/logs".into(),
-            runtime_dir: "~/.local/share/omikuji/runtime".into(),
+            data_dir: base.to_string_lossy().into_owned(),
+            library_dir: s("library"),
+            gachas_dir: s("gachas"),
+            runners_dir: s("runners"),
+            dll_packs_dir: s("components"),
+            prefixes_dir: s("prefixes"),
+            cache_dir: s("cache"),
+            logs_dir: s("logs"),
+            runtime_dir: s("runtime"),
         }
     }
 }

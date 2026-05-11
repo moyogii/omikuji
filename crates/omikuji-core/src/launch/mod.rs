@@ -193,23 +193,7 @@ fn build_steam_launch(game: &Game, working_dir: PathBuf) -> Result<LaunchConfig>
         anyhow::bail!("Steam runner requires an Application ID");
     }
 
-    let steam_exe = find_steam_exe();
-    let has_args = !game.launch.args.is_empty();
-
-    // -applaunch needs the real steam binary; URL form falls back to xdg-open
-    let mut command = if has_args {
-        let exe = steam_exe.ok_or_else(|| anyhow::anyhow!(
-            "Steam binary not found in PATH. Required for launching with arguments."
-        ))?;
-        let mut cmd = vec![exe, "-applaunch".to_string(), appid];
-        for arg in &game.launch.args {
-            cmd.push(arg.clone());
-        }
-        cmd
-    } else {
-        let exe = steam_exe.unwrap_or_else(|| "xdg-open".to_string());
-        vec![exe, format!("steam://rungameid/{}", appid)]
-    };
+    let mut command = build_steam_command(&appid, &game.launch.args);
 
     let mut env: HashMap<String, String> = std::env::vars().collect();
     for (k, v) in &game.launch.env {
@@ -592,7 +576,7 @@ fn find_umu_run() -> Option<PathBuf> {
     None
 }
 
-fn find_steam_exe() -> Option<String> {
+fn find_native_steam() -> Option<String> {
     let candidates = ["steam", "steam.sh"];
 
     if let Ok(path_var) = std::env::var("PATH") {
@@ -610,7 +594,6 @@ fn find_steam_exe() -> Option<String> {
         "~/.steam/steam.sh",
         "~/.steam/steam/steam.sh",
         "~/.local/share/Steam/steam.sh",
-        "~/.var/app/com.valvesoftware.Steam/data/Steam/steam.sh", // flatpak todooooootooTOODOOOOOOOOOOOO TODOOOOOOOOOO
     ];
 
     for path in &steam_paths {
@@ -622,6 +605,43 @@ fn find_steam_exe() -> Option<String> {
     }
 
     None
+}
+
+fn flatpak_steam_installed() -> bool {
+    dirs::home_dir()
+        .map(|h| h.join(".var/app/com.valvesoftware.Steam").exists())
+        .unwrap_or(false)
+}
+
+fn build_steam_command(appid: &str, args: &[String]) -> Vec<String> {
+    if std::env::var("FLATPAK_ID").is_ok() {
+        let uri = if args.is_empty() {
+            format!("steam://rungameid/{}", appid)
+        } else {
+            format!("steam://run/{}//{}/", appid, args.join(" "))
+        };
+        return vec!["xdg-open".to_string(), uri];
+    }
+
+    if let Some(exe) = find_native_steam() {
+        let mut cmd = vec![exe, "-applaunch".to_string(), appid.to_string()];
+        cmd.extend(args.iter().cloned());
+        return cmd;
+    }
+
+    if flatpak_steam_installed() {
+        let mut cmd = vec![
+            "flatpak".to_string(),
+            "run".to_string(),
+            "com.valvesoftware.Steam".to_string(),
+            "-applaunch".to_string(),
+            appid.to_string(),
+        ];
+        cmd.extend(args.iter().cloned());
+        return cmd;
+    }
+
+    vec!["xdg-open".to_string(), format!("steam://rungameid/{}", appid)]
 }
 
 #[cfg(unix)]
