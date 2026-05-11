@@ -6,7 +6,7 @@ Item {
 
     property real uiScale: 1.0
 
-    signal keyPressed(string char)
+    signal keyPressed(string ch)
     signal backspaceRequested()
     signal spaceRequested()
     signal submitRequested()
