@@ -39,6 +39,86 @@ ApplicationWindow {
     UiSettingsBridge {
         id: uiSettings
         Component.onCompleted: initWatcher()
+        onShowTrayIconChanged: {
+            trayBridge.setEnabled(showTrayIcon)
+            if (showTrayIcon) root.pushTrayRecent()
+        }
+    }
+
+    TrayBridge {
+        id: trayBridge
+
+        onShow_window_requested: root.showFromTray()
+        onToggle_window_requested: root.toggleFromTray()
+        onLaunch_game_requested: (gameId) => root.launchFromTray(gameId)
+        onQuit_requested: trayBridge.quitApp()
+
+        Component.onCompleted: {
+            setIcon(":/qt/qml/omikuji/qml/icons/app.png")
+            if (uiSettings.showTrayIcon) {
+                setEnabled(true)
+                root.pushTrayRecent()
+            }
+        }
+    }
+
+    Timer {
+        interval: 200
+        repeat: true
+        running: uiSettings.showTrayIcon
+        onTriggered: trayBridge.drainEvents()
+    }
+
+    function pushTrayRecent() {
+        if (!uiSettings.showTrayIcon) return
+        let dated = []
+        for (let i = 0; i < gameModel.count; i++) {
+            let g = gameModel.get_game(i)
+            if (!g) continue
+            let ts = Date.parse(g.lastPlayed || "") || 0
+            if (ts > 0) dated.push({ id: g.gameId, name: g.name, ts: ts })
+        }
+        dated.sort((a, b) => b.ts - a.ts)
+        let out = []
+        for (let i = 0; i < Math.min(10, dated.length); i++) {
+            out.push({ id: dated[i].id, name: dated[i].name })
+        }
+        trayBridge.setRecentGames(JSON.stringify(out))
+    }
+
+    function showFromTray() {
+        root.visible = true
+        root.raise()
+        root.requestActivate()
+    }
+
+    function toggleFromTray() {
+        if (!root.visible) {
+            showFromTray()
+        } else if (!root.active) {
+            root.raise()
+            root.requestActivate()
+        } else {
+            root.visible = false
+        }
+    }
+
+    function launchFromTray(gameId) {
+        if (!gameId) return
+        for (let i = 0; i < gameModel.count; i++) {
+            let g = gameModel.get_game(i)
+            if (g && g.gameId === gameId) {
+                root.tryPlay(i)
+                return
+            }
+        }
+    }
+
+    onClosing: (close) => {
+        if (uiSettings.showTrayIcon) {
+            close.accepted = false
+            root.visible = false
+        }
     }
 
     DefaultsBridge {
@@ -174,7 +254,17 @@ ApplicationWindow {
             toastManager.show("info", "Updates available", bits.join(" + ") + " queued in Downloads")
         }
 
-        Component.onCompleted: gameModel.scan_all_for_updates()
+        Component.onCompleted: {
+            gameModel.scan_all_for_updates()
+            root.pushTrayRecent()
+        }
+    }
+
+    Connections {
+        target: gameModel
+        function onDataChanged() { root.pushTrayRecent() }
+        function onRowsInserted() { root.pushTrayRecent() }
+        function onRowsRemoved() { root.pushTrayRecent() }
     }
 
     EpicModel { id: epicModel }

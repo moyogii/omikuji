@@ -226,6 +226,16 @@ Item {
             }
 
             SettingsRow {
+                label: "Show tray icon"
+                labelWidth: root.rowLabelWidth
+                width: parent.width
+                M3Switch {
+                    checked: uiSettings ? uiSettings.showTrayIcon : false
+                    onToggled: (val) => uiSettings.applyShowTrayIcon(val)
+                }
+            }
+
+            SettingsRow {
                 label: "Unload store tabs"
                 description: "After 15s idle"
                 labelWidth: root.rowLabelWidth
