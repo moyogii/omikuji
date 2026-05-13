@@ -226,6 +226,16 @@ Item {
             }
 
             SettingsRow {
+                label: "Double-click card to launch"
+                labelWidth: root.rowLabelWidth
+                width: parent.width
+                M3Switch {
+                    checked: uiSettings ? uiSettings.doubleClickLaunches : false
+                    onToggled: (val) => uiSettings.applyDoubleClickLaunches(val)
+                }
+            }
+
+            SettingsRow {
                 label: "Show tray icon"
                 labelWidth: root.rowLabelWidth
                 width: parent.width

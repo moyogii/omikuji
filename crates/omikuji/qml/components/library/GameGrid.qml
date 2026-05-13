@@ -19,6 +19,7 @@ Item {
     property var gameModel: null
 
     signal gameClicked(int index)
+    signal gameDoubleClicked(int index)
     signal gameRightClicked(int index, real winX, real winY)
     signal backgroundClicked()
 
@@ -99,6 +100,7 @@ Item {
                          name.toLowerCase().includes(root.searchText.toLowerCase())) &&
                          root.gamePassesFilter(index)
             onClicked: root.gameClicked(index)
+            onDoubleClicked: root.gameDoubleClicked(index)
             onRightClicked: (winX, winY) => root.gameRightClicked(index, winX, winY)
         }
     }

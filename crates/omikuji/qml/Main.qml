@@ -693,6 +693,9 @@ property real cardZoom: uiSettings.cardZoom
                     root.selectedGameIndex = index
                     topBar.defocusSearch()
                 }
+                onGameDoubleClicked: (index) => {
+                    if (uiSettings.doubleClickLaunches) root.tryPlay(index)
+                }
                 onGameRightClicked: (index, winX, winY) => gameContextMenu.show(index, winX, winY)
                 onBackgroundClicked: {
                     root.selectedGameIndex = -1

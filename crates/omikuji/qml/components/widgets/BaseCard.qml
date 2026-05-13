@@ -35,6 +35,7 @@ Item {
     property Component overlayComponent: null
 
     signal clicked()
+    signal doubleClicked()
     signal rightClicked(real winX, real winY)
 
     readonly property bool nameHovered: {
@@ -229,6 +230,13 @@ Item {
             } else {
                 root.clicked()
             }
+        }
+
+        onDoubleClicked: (mouse) => {
+            if (!root.cardVisible) return
+            if (mouse.button !== Qt.LeftButton) return
+            mouse.accepted = true
+            root.doubleClicked()
         }
     }
 }

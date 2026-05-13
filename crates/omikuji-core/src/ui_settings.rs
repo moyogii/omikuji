@@ -122,6 +122,7 @@ pub struct BehaviorSettings {
     pub auto_check_updates_on_boot: bool,
     pub show_tray_icon: bool,
     pub discord_rpc: bool,
+    pub double_click_launches: bool,
 }
 
 

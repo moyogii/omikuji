@@ -32,6 +32,7 @@ pub mod qobject {
         #[qproperty(bool, nav_collapsed, cxx_name = "navCollapsed")]
         #[qproperty(bool, minimize_on_launch, cxx_name = "minimizeOnLaunch")]
         #[qproperty(bool, save_game_logs, cxx_name = "saveGameLogs")]
+        #[qproperty(bool, double_click_launches, cxx_name = "doubleClickLaunches")]
         #[qproperty(bool, auto_check_epic_updates_on_launch, cxx_name = "autoCheckEpicUpdatesOnLaunch")]
         #[qproperty(bool, auto_check_gog_updates_on_launch, cxx_name = "autoCheckGogUpdatesOnLaunch")]
         #[qproperty(bool, auto_check_updates_on_boot, cxx_name = "autoCheckUpdatesOnBoot")]
@@ -101,6 +102,10 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "applySaveGameLogs"]
         fn apply_save_game_logs(self: Pin<&mut UiSettingsBridge>, value: bool);
+
+        #[qinvokable]
+        #[cxx_name = "applyDoubleClickLaunches"]
+        fn apply_double_click_launches(self: Pin<&mut UiSettingsBridge>, value: bool);
 
         #[qinvokable]
         #[cxx_name = "applyAutoCheckEpicUpdatesOnLaunch"]
@@ -180,6 +185,7 @@ pub struct UiSettingsRust {
     pub auto_check_updates_on_boot: bool,
     pub show_tray_icon: bool,
     pub discord_rpc: bool,
+    pub double_click_launches: bool,
     pub ui_scale: f64,
     pub muted_icons: bool,
     pub card_flow: cxx_qt_lib::QString,
@@ -218,6 +224,7 @@ impl UiSettingsRust {
             auto_check_updates_on_boot: s.behavior.auto_check_updates_on_boot,
             show_tray_icon: s.behavior.show_tray_icon,
             discord_rpc: s.behavior.discord_rpc,
+            double_click_launches: s.behavior.double_click_launches,
             ui_scale: s.display.scale,
             muted_icons: s.display.muted_icons,
             card_flow: cxx_qt_lib::QString::from(&s.display.card_flow),
@@ -256,6 +263,7 @@ impl qobject::UiSettingsBridge {
                 auto_check_updates_on_boot: self.auto_check_updates_on_boot,
                 show_tray_icon: self.show_tray_icon,
                 discord_rpc: self.discord_rpc,
+                double_click_launches: self.double_click_launches,
             },
             display: DisplaySettings {
                 scale: self.ui_scale,
@@ -339,6 +347,11 @@ impl qobject::UiSettingsBridge {
         self.persist();
     }
 
+    fn apply_double_click_launches(mut self: Pin<&mut Self>, value: bool) {
+        self.as_mut().set_double_click_launches(value);
+        self.persist();
+    }
+
     fn apply_auto_check_epic_updates_on_launch(mut self: Pin<&mut Self>, value: bool) {
         self.as_mut().set_auto_check_epic_updates_on_launch(value);
         self.persist();
@@ -409,6 +422,7 @@ impl qobject::UiSettingsBridge {
         self.as_mut().set_show_tray_icon(s.behavior.show_tray_icon);
         self.as_mut().set_discord_rpc(s.behavior.discord_rpc);
         omikuji_core::discord::set_enabled(s.behavior.discord_rpc);
+        self.as_mut().set_double_click_launches(s.behavior.double_click_launches);
         self.as_mut().set_ui_scale(s.display.scale);
         self.as_mut().set_muted_icons(s.display.muted_icons);
         self.as_mut().set_card_flow(cxx_qt_lib::QString::from(&s.display.card_flow));
