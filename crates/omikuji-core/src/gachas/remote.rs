@@ -1,6 +1,6 @@
 // gacha discovery is fully manifest-driven. on every fetch:
 //  1. pull gacha/index.json from assets repo (canonical list of (publisher, game) pairs)
-//  2. for each entry not cached locally, pull its manifest.json
+//  2. re-fetch every manifest so users pick up assets-repo changes mid-session (not pulling if cached was braindead what the fuck i was doing)
 // adding a game = push manifest + push art + add 1 line to assets-repo's gacha/index.json. zero rust touch.
 
 use anyhow::{anyhow, Result};
@@ -21,14 +21,6 @@ struct IndexEntry {
 
 const INDEX_SCHEMA_VERSION: u32 = 1;
 
-fn is_cached(publisher: &str, game: &str) -> bool {
-    crate::gachas_dir()
-        .join(publisher)
-        .join(game)
-        .join("manifest.json")
-        .exists()
-}
-
 pub async fn ensure_all_fetched() -> Result<u32> {
     let base = crate::settings::get().assets.fetch_url.trim().to_string();
     if base.is_empty() {
@@ -45,9 +37,6 @@ pub async fn ensure_all_fetched() -> Result<u32> {
 
     let mut written: u32 = 0;
     for entry in &index.gachas {
-        if is_cached(&entry.publisher, &entry.game) {
-            continue;
-        }
         match fetch_one(&client, &base, &entry.publisher, &entry.game).await {
             Ok(()) => written += 1,
             Err(e) => eprintln!(
